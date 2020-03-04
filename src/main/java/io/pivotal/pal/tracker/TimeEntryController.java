@@ -23,7 +23,11 @@ import org.springframework.http.HttpStatus;
 public class TimeEntryController {
 
     @Autowired
-    TimeEntryRepository timeEntryRepository;
+    private TimeEntryRepository timeEntryRepository;
+
+    public TimeEntryController(TimeEntryRepository timeEntryRepository) {
+        this.timeEntryRepository = timeEntryRepository;
+    }
 
 
 
@@ -78,7 +82,5 @@ public class TimeEntryController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    public TimeEntryController(TimeEntryRepository timeEntryRepository) {
-        this.timeEntryRepository = timeEntryRepository;
-    }
+
 }
