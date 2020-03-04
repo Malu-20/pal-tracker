@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Collection;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
 
 @RestController
 @RequestMapping("/time-entries")
@@ -24,9 +27,13 @@ public class TimeEntryController {
 
     @Autowired
     private TimeEntryRepository timeEntryRepository;
+    private final DistributionSummary timeEntrySummary;
+    private final Counter actionCounter;
 
-    public TimeEntryController(TimeEntryRepository timeEntryRepository) {
+    public TimeEntryController(TimeEntryRepository timeEntryRepository, MeterRegistry meterRegistry) {
         this.timeEntryRepository = timeEntryRepository;
+        timeEntrySummary = meterRegistry.summary("timeEntry.summary");
+        actionCounter = meterRegistry.counter("timeEntry.actionCounter");
     }
 
 
@@ -36,7 +43,8 @@ public class TimeEntryController {
         //System.out.println(this.getClass().getSimpleName() + " - Create new employee method is invoked.");
        // return timeEntryRepository.create(timeEntry);
         TimeEntry createdTimeEntry = timeEntryRepository.create(timeEntry);
-
+        actionCounter.increment();
+        timeEntrySummary.record(timeEntryRepository.list().size());
         // Returning a ResponseEntity allows us to control the resulting HTTP status code
         return new ResponseEntity<>(createdTimeEntry, HttpStatus.CREATED);
     }
@@ -47,6 +55,7 @@ public class TimeEntryController {
 
         TimeEntry timeEntry = timeEntryRepository.find(id);
         if (timeEntry != null) {
+            actionCounter.increment();
             return new ResponseEntity<>(timeEntry, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -55,6 +64,7 @@ public class TimeEntryController {
 
     @GetMapping
     public ResponseEntity<List<TimeEntry>> list() {
+        actionCounter.increment();
         //System.out.println(this.getClass().getSimpleName() + " - Get all employees service is invoked.");
         return new ResponseEntity<>(timeEntryRepository.list(), HttpStatus.OK);
     }
@@ -65,6 +75,7 @@ public class TimeEntryController {
 
         TimeEntry updatedTimeEntry = timeEntryRepository.update(id, updTimeEntry);
         if (updatedTimeEntry != null) {
+            actionCounter.increment();
             return new ResponseEntity<>(updatedTimeEntry, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -78,7 +89,8 @@ public class TimeEntryController {
 
 
         timeEntryRepository.delete(id);
-
+        actionCounter.increment();
+        timeEntrySummary.record(timeEntryRepository.list().size());
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
