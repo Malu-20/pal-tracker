@@ -1,8 +1,11 @@
+import org.flywaydb.gradle.task.FlywayMigrateTask
 // 1) configure the requirements to run the build script
+
 buildscript {
     // set a custom property
     ext {
         springBootVersion = '2.2.2.RELEASE'
+        mySqlConnectorVersion='8.0.13'
     }
     // check for dependencies in Maven Central when resolving the
     // dependencies in the buildscript block
@@ -11,13 +14,22 @@ buildscript {
     }
     // we need the spring boot plugin to run the build script
     dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath('org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}',
+        'mysql:mysql-connector-java:8.0.13')
     }
 }
 // 2) apply some plugins
-apply plugin: 'java'
-apply plugin: 'org.springframework.boot'
-apply plugin: 'io.spring.dependency-management'
+//apply plugin: 'java'
+//apply plugin: 'org.springframework.boot'
+//apply plugin: 'io.spring.dependency-management'
+//apply plugin: 'org.flywaydb.flyway'
+
+plugins {
+    id 'org.springframework.boot' version '2.2.2.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.8.RELEASE'
+    id "org.flywaydb.flyway" version "5.2.1"
+    id 'java'
+}
 // 3) set some standard properties
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = 1.8
@@ -30,6 +42,8 @@ dependencies {
     //implementation('org.springframework.boot:spring-boot-starter-security')
     implementation('org.springframework.boot:spring-boot-starter-web')
     implementation('org.apache.commons:commons-lang3')
+    implementation('org.springframework.boot:spring-boot-starter-jdbc')
+    implementation('mysql:mysql-connector-java')
     testImplementation('org.springframework.boot:spring-boot-starter-test'){
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
     }
@@ -45,8 +59,21 @@ bootJar {
 
 bootRun.environment([
         "WELCOME_MESSAGE": "hello",
+        "SPRING_DATASOURCE_URL": "jdbc:mysql://localhost:3306/tracker_dev?user=tracker&useSSL=false&useTimezone=true&serverTimezone=UTC&useLegacyDatetimeCode=false",
 ])
 
 test.environment([
         "WELCOME_MESSAGE": "Hello from test",
+        "SPRING_DATASOURCE_URL": "jdbc:mysql://localhost:3306/tracker_test?user=tracker&useSSL=false&useTimezone=true&serverTimezone=UTC&useLegacyDatetimeCode=false",
 ])
+def developmentDbUrl = "jdbc:mysql://localhost:3306/tracker_dev?user=tracker&useSSL=false&useTimezone=true&serverTimezone=UTC&useLegacyDatetimeCode=false"
+flyway {
+    url = developmentDbUrl
+    user = "root"
+    password = "root"
+    locations = ["filesystem:C:/Users/455222/workspace/pal-tracker/databases/tracker/migrations"]
+}
+def testDbUrl = "jdbc:mysql://localhost:3306/tracker_test?user=tracker&useSSL=false&useTimezone=true&serverTimezone=UTC&useLegacyDatetimeCode=false"
+task testMigrate(type: FlywayMigrateTask) {
+    url = testDbUrl
+}
